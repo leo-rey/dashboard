@@ -20,9 +20,10 @@ O dashboard não exige login, conforme decisão do proprietário em 02/10/2026.
 ## Segurança
 
 - Nunca use senha do Postgres, `service_role` ou `sb_secret_` no navegador.
-- As tabelas operacionais usam RLS, com leitura anônima para permitir acesso direto ao dashboard.
+- A leitura pública da dashboard ocorre apenas no servidor pela `DATABASE_URL`; a senha do banco nunca é enviada ao navegador.
+- Em hospedagem IPv4/serverless, use o Supavisor em modo transação (`pooler.supabase.com:6543`) com prepared statements desativados.
 - Dados reais não entram em fixtures nem assets públicos.
-- A senha compartilhada durante a configuração deve ser rotacionada antes da produção.
+- Credenciais devem permanecer somente em variáveis sensíveis da Vercel e em arquivos locais ignorados pelo Git.
 
 ## Documentação
 
