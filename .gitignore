@@ -12,6 +12,7 @@ dist/
 coverage/
 reports/private/
 reports/*.json
+supabase/migrations/*import_reconciled_commercial_data.sql
 tsconfig.tsbuildinfo
 .openai/
 server.mjs
