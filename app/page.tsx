@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+import { getSql } from "@/lib/db";
 import { Cockpit } from "@/components/cockpit";
 
 export const dynamic = "force-dynamic";
@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   let initialData;
   try {
+    const sql = getSql();
     const [contacts, activities, opportunities, accounts] = await Promise.all([
       sql`select c.id,c.legacy_id,c.name,c.role_title,c.status_raw,c.linkedin_url,c.last_contact_at,c.verified_at,c.source,c.notes,c.owner_name,jsonb_build_object('id',a.id,'canonical_name',a.canonical_name) account from public.contacts c join public.accounts a on a.id=c.account_id where c.deleted_at is null order by c.updated_at desc limit 500`,
       sql`select b.id,b.effective_on,b.contacts_count,b.invites_count,b.messages_count,b.replies_count,b.conversations_count,b.meetings_count,b.opportunities_count,b.notes,b.owner_name,jsonb_build_object('name',coalesce(ch.name,'—')) channel from public.activity_batches b left join public.channels ch on ch.id=b.channel_id order by b.effective_on desc limit 200`,
