@@ -1,19 +1,20 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { sql } from "@/lib/db";
 import { Cockpit } from "@/components/cockpit";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  const [contacts, activities, opportunities, accounts] = await Promise.all([
-    supabase.from("contacts").select("id,legacy_id,name,role_title,status_raw,linkedin_url,last_contact_at,verified_at,source,notes,account:accounts(id,canonical_name),owner:profiles!contacts_owner_id_fkey(display_name)").is("deleted_at", null).order("updated_at", { ascending: false }).limit(500),
-    supabase.from("activity_batches").select("id,effective_on,contacts_count,invites_count,messages_count,replies_count,conversations_count,meetings_count,opportunities_count,notes,owner:profiles!activity_batches_owner_id_fkey(display_name),channel:channels(name)").order("effective_on", { ascending: false }).limit(200),
-    supabase.from("opportunities").select("id,title,value_amount,probability,expected_close_on,next_action,next_action_due_on,evidence_level,account:accounts(id,canonical_name),owner:profiles!opportunities_owner_id_fkey(display_name),stage:opportunity_stages(name,is_closed)").is("deleted_at", null).order("updated_at", { ascending: false }).limit(200),
-    supabase.from("accounts").select("id,canonical_name").is("deleted_at", null).order("canonical_name").limit(1000)
-  ]);
-  const firstError = contacts.error || activities.error || opportunities.error || accounts.error;
-  return <Cockpit userEmail={user.email ?? "Usuário"} initialData={{ contacts: contacts.data ?? [], activities: activities.data ?? [], opportunities: opportunities.data ?? [], accounts: accounts.data ?? [], error: firstError?.message ?? null, updatedAt: new Date().toISOString() }} />;
+  let initialData;
+  try {
+    const [contacts, activities, opportunities, accounts] = await Promise.all([
+      sql`select c.id,c.legacy_id,c.name,c.role_title,c.status_raw,c.linkedin_url,c.last_contact_at,c.verified_at,c.source,c.notes,c.owner_name,jsonb_build_object('id',a.id,'canonical_name',a.canonical_name) account from public.contacts c join public.accounts a on a.id=c.account_id where c.deleted_at is null order by c.updated_at desc limit 500`,
+      sql`select b.id,b.effective_on,b.contacts_count,b.invites_count,b.messages_count,b.replies_count,b.conversations_count,b.meetings_count,b.opportunities_count,b.notes,b.owner_name,jsonb_build_object('name',coalesce(ch.name,'—')) channel from public.activity_batches b left join public.channels ch on ch.id=b.channel_id order by b.effective_on desc limit 200`,
+      sql`select o.id,o.title,o.value_amount,o.probability,o.expected_close_on,o.next_action,o.next_action_due_on,o.evidence_level,o.owner_name,jsonb_build_object('id',a.id,'canonical_name',a.canonical_name) account,jsonb_build_object('name',coalesce(s.name,'A validar'),'is_closed',coalesce(s.is_closed,false)) stage from public.opportunities o join public.accounts a on a.id=o.account_id left join public.opportunity_stages s on s.id=o.stage_id where o.deleted_at is null order by o.updated_at desc limit 200`,
+      sql`select id,canonical_name from public.accounts where deleted_at is null order by canonical_name limit 1000`
+    ]);
+    initialData = { contacts: [...contacts], activities: [...activities], opportunities: [...opportunities], accounts: [...accounts], error: null, updatedAt: new Date().toISOString() };
+  } catch (error) {
+    initialData = { contacts: [], activities: [], opportunities: [], accounts: [], error: error instanceof Error ? error.message : "Falha ao consultar o banco", updatedAt: new Date().toISOString() };
+  }
+  return <Cockpit initialData={initialData} />;
 }
