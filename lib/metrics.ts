@@ -1,6 +1,38 @@
 export type Activity = { contacts: number; invites: number; messages: number; replies: number; conversations: number; meetings: number; opportunities: number };
 export type Opportunity = { value_amount: number | string; probability: number; stage?: { is_closed?: boolean } | null };
 
+const commercialDateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" });
+const commercialDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  dateStyle: "short",
+  timeStyle: "medium"
+});
+
+type DateValue = string | number | Date | null | undefined;
+
+function parseDate(value: DateValue) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const normalized = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value}T12:00:00-03:00`
+    : value;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function formatCommercialDate(value: DateValue) {
+  const parsed = parseDate(value);
+  return parsed ? commercialDateFormatter.format(parsed) : "—";
+}
+
+export function formatCommercialDateTime(value: DateValue) {
+  const parsed = parseDate(value);
+  return parsed ? commercialDateTimeFormatter.format(parsed) : "—";
+}
+
 export function sumActivities(rows: Activity[]) {
   return rows.reduce((total, row) => ({
     contacts: total.contacts + row.contacts,
