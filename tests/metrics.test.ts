@@ -19,4 +19,14 @@ describe("commercial metrics", () => {
     expect(formatCommercialDate("Data a validar")).toBe("—");
     expect(formatCommercialDateTime(undefined)).toBe("—");
   });
+  it("ignores closed stages and NaN amounts", () => {
+    const r = pipelineMetrics([
+      { value_amount: "invalid", probability: 50, stage: { is_closed: false } },
+      { value_amount: 1000, probability: NaN as unknown as number, stage: { is_closed: false } },
+      { value_amount: 2000, probability: 50, stage: { is_closed: true } },
+    ]);
+    expect(r.count).toBe(2);
+    expect(r.total).toBe(1000);
+    expect(r.weighted).toBe(0);
+  });
 });

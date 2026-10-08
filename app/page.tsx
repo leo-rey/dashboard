@@ -15,7 +15,9 @@ export default async function DashboardPage() {
     ]);
     initialData = { contacts: [...contacts], activities: [...activities], opportunities: [...opportunities], accounts: [...accounts], error: null, updatedAt: new Date().toISOString() };
   } catch (error) {
-    initialData = { contacts: [], activities: [], opportunities: [], accounts: [], error: error instanceof Error ? error.message : "Falha ao consultar o banco", updatedAt: new Date().toISOString() };
+    const ref = crypto.randomUUID().slice(0, 8);
+    console.error(`[dashboard] db query failed ref=${ref}`, error instanceof Error ? error.message : error);
+    initialData = { contacts: [], activities: [], opportunities: [], accounts: [], error: `Falha ao consultar o banco (ref ${ref}). Tente novamente.`, updatedAt: new Date().toISOString() };
   }
   return <Cockpit initialData={initialData} />;
 }

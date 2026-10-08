@@ -3,28 +3,28 @@ import { z } from "zod";
 export const evidenceLevel = z.enum(["confirmed", "inferred", "pending_validation", "conflicting"]);
 
 export const activitySchema = z.object({
-  idempotencyKey: z.string().min(12).max(120),
+  idempotencyKey: z.string().trim().min(12).max(120),
   occurredOn: z.iso.date(),
   channelId: z.uuid().nullable().optional(),
-  contacts: z.coerce.number().int().min(0).max(100000),
-  invites: z.coerce.number().int().min(0).max(100000),
-  messages: z.coerce.number().int().min(0).max(100000),
-  replies: z.coerce.number().int().min(0).max(100000),
-  conversations: z.coerce.number().int().min(0).max(100000),
-  meetings: z.coerce.number().int().min(0).max(100000),
-  opportunities: z.coerce.number().int().min(0).max(100000),
+  contacts: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "contacts must be finite" }),
+  invites: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "invites must be finite" }),
+  messages: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "messages must be finite" }),
+  replies: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "replies must be finite" }),
+  conversations: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "conversations must be finite" }),
+  meetings: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "meetings must be finite" }),
+  opportunities: z.coerce.number().int().min(0).max(100000).refine((n) => Number.isFinite(n), { message: "opportunities must be finite" }),
   note: z.string().trim().max(2000).optional().default(""),
   evidenceLevel: evidenceLevel.default("confirmed")
 });
 
 export const opportunitySchema = z.object({
-  idempotencyKey: z.string().min(12).max(120),
+  idempotencyKey: z.string().trim().min(12).max(120),
   accountId: z.uuid(),
   title: z.string().trim().min(3).max(200),
   ownerId: z.uuid().nullable().optional(),
   stageId: z.uuid().nullable().optional(),
-  value: z.coerce.number().min(0).max(999999999999),
-  probability: z.coerce.number().int().min(0).max(100),
+  value: z.coerce.number().min(0).max(999999999999).refine((n) => Number.isFinite(n), { message: "value must be finite" }),
+  probability: z.coerce.number().int().min(0).max(100).refine((n) => Number.isFinite(n), { message: "probability must be finite" }),
   expectedCloseOn: z.iso.date().nullable().optional(),
   problem: z.string().trim().min(3).max(3000),
   nextAction: z.string().trim().min(3).max(1000),

@@ -47,9 +47,18 @@ export function sumActivities(rows: Activity[]) {
 
 export function pipelineMetrics(rows: Opportunity[]) {
   const open = rows.filter((row) => !row.stage?.is_closed);
+  const toSafeAmount = (v: unknown) => {
+    const n = Number(v || 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const toSafeProb = (p: unknown) => {
+    const n = Number(p);
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(100, Math.max(0, n));
+  };
   return {
     count: open.length,
-    total: open.reduce((sum, row) => sum + Number(row.value_amount || 0), 0),
-    weighted: open.reduce((sum, row) => sum + Number(row.value_amount || 0) * row.probability / 100, 0)
+    total: open.reduce((sum, row) => sum + toSafeAmount(row.value_amount), 0),
+    weighted: open.reduce((sum, row) => sum + toSafeAmount(row.value_amount) * toSafeProb(row.probability) / 100, 0)
   };
 }
