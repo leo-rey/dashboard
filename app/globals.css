@@ -39,6 +39,14 @@ th{text-align:left;padding:12px 16px;background:#f9fbfc;color:var(--muted);font-
 td{padding:14px 16px;border-top:1px solid #edf1f5;font-size:13px;vertical-align:top}
 td small{display:block;color:var(--muted);margin-top:3px}
 .pill{display:inline-block;border-radius:99px;padding:5px 8px;font-size:11px;font-weight:800;background:#eaf0f7;color:var(--blue);white-space:nowrap}
+.status-a_validar{background:#eef2f6;color:#4b5f78}
+.status-pre_cadastro{background:#eaf4ff;color:#145da0}
+.status-email_compras{background:#f1f7e8;color:#456d12}
+.status-reuniao_compras{background:#fff4dc;color:#8a5a00}
+.status-em_homologacao{background:#e9f8fb;color:#0d6676}
+.status-homologada{background:#e8f7ed;color:#14733c}
+.status-bloqueada{background:#fff0f1;color:#8d2435}
+.status-sem_avanco{background:#f3f0eb;color:#725d42}
 a{color:var(--blue);font-weight:700}
 .empty{text-align:center;padding:55px;color:var(--muted)}
 .hero{background:var(--ink);color:#fff;border-radius:15px;padding:28px;margin-bottom:16px}

@@ -10,6 +10,8 @@
 
 Produção atual: `https://dashboard-omega-taupe-83.vercel.app`.
 
-Smoke test mínimo: resposta HTTP sem redirecionamento de autenticação, ausência de alerta de banco, 470 contatos, 12 conversas relevantes e 2 reuniões para a carga reconciliada de 02/10/2026.
+Smoke test mínimo: resposta HTTP sem redirecionamento de autenticação, ausência de alerta de banco, contatos acima do limite histórico de 500 quando a base atual estiver reconciliada, 12 conversas relevantes, 2 reuniões para a carga reconciliada de 02/10/2026 e aba Homologação carregando sem erro mesmo quando ainda não houver registros.
+
+Smoke test de escrita privada: com sessão Supabase válida e membership ativa, enviar um payload mínimo para `POST /api/homologations` com `idempotencyKey`, `companyName`, `status` e evidência. Repetir a mesma chave deve retornar deduplicação ou o mesmo registro, sem duplicar a homologação.
 
 Rollback da aplicação: apontar o alias de produção ao deployment anterior. Rollback de dados: interromper escritas, identificar `import_run_id`, usar auditoria e exclusão lógica; nunca apagar interações/histórico.

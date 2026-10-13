@@ -42,3 +42,30 @@ export interface OpportunityRow {
   account: { id: string; canonical_name: string } | null;
   stage: { name: string; is_closed: boolean } | null;
 }
+
+export type HomologationStatus =
+  | "a_validar"
+  | "pre_cadastro"
+  | "email_compras"
+  | "reuniao_compras"
+  | "em_homologacao"
+  | "homologada"
+  | "bloqueada"
+  | "sem_avanco";
+
+export interface HomologationRow {
+  id: string;
+  company_name: string;
+  status: HomologationStatus;
+  owner_name: string | null;
+  supplier_portal_url: string | null;
+  buyer_area_contact: string | null;
+  last_action: string | null;
+  last_action_at: string | null;
+  next_action: string | null;
+  next_action_due_on: string | null;
+  notes: string | null;
+  evidence_level: EvidenceLevel;
+  updated_at: string;
+  account: { id: string; canonical_name: string } | null;
+}

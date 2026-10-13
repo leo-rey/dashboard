@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activityTrend, formatCommercialDate, formatCommercialDateTime, funnelMetrics, pipelineByStage, pipelineMetrics, priorityOpportunities, sumActivities } from "../lib/metrics";
-import { neutralizeCsv } from "../lib/validation";
+import { homologationSchema, neutralizeCsv } from "../lib/validation";
 
 describe("commercial metrics", () => {
   it("sums aggregate activity without inventing atomic events", () => {
@@ -69,5 +69,21 @@ describe("commercial metrics", () => {
     expect(items).toHaveLength(2);
     expect(items[0].id).toBe("1");
     expect(items[0].overdue).toBe(true);
+  });
+  it("validates homologation intake without accepting unsafe portal URLs", () => {
+    const parsed = homologationSchema.parse({
+      idempotencyKey: "homologacao-acme-2026-10-13",
+      companyName: "Acme Compras",
+      status: "pre_cadastro",
+      supplierPortalUrl: "https://fornecedores.example.com",
+    });
+    expect(parsed.evidenceLevel).toBe("pending_validation");
+    expect(() =>
+      homologationSchema.parse({
+        idempotencyKey: "homologacao-acme-2026-10-13",
+        companyName: "Acme Compras",
+        supplierPortalUrl: "http://fornecedores.example.com",
+      })
+    ).toThrow();
   });
 });

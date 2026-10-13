@@ -13,12 +13,22 @@ import {
   sumActivities,
 } from "@/lib/metrics";
 import { neutralizeCsv } from "@/lib/validation";
-import type { AccountRow, ActivityRow, ContactRow, OpportunityRow } from "@/lib/database.types";
+import type { AccountRow, ActivityRow, ContactRow, HomologationRow, OpportunityRow } from "@/lib/database.types";
 
-type Data = { contacts: ContactRow[]; activities: ActivityRow[]; opportunities: OpportunityRow[]; accounts: AccountRow[]; error: string | null; updatedAt: string };
-const tabs = ["Visão diária", "Dia anterior", "Prospecção", "Reunião executiva", "Pipeline", "Contas prioritárias"] as const;
+type Data = { contacts: ContactRow[]; activities: ActivityRow[]; opportunities: OpportunityRow[]; accounts: AccountRow[]; homologations: HomologationRow[]; error: string | null; updatedAt: string };
+const tabs = ["Visão diária", "Dia anterior", "Prospecção", "Homologação", "Reunião executiva", "Pipeline", "Contas prioritárias"] as const;
 type Tab = (typeof tabs)[number];
 const PAGE_SIZE = 50;
+const homologationLabels: Record<HomologationRow["status"], string> = {
+  a_validar: "A validar",
+  pre_cadastro: "Pré-cadastro",
+  email_compras: "E-mail para compras",
+  reuniao_compras: "Reunião com compras",
+  em_homologacao: "Em homologação",
+  homologada: "Homologada",
+  bloqueada: "Bloqueada",
+  sem_avanco: "Sem avanço",
+};
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -71,14 +81,18 @@ export function Cockpit({ initialData }: { initialData: Data }) {
   const [query, setQuery] = useState("");
   const [oppQuery, setOppQuery] = useState("");
   const [accountQuery, setAccountQuery] = useState("");
+  const [homologationQuery, setHomologationQuery] = useState("");
   const [contactPage, setContactPage] = useState(0);
   const [oppPage, setOppPage] = useState(0);
+  const [homologationPage, setHomologationPage] = useState(0);
   const deferredQuery = useDeferredValue(query);
   const deferredOppQuery = useDeferredValue(oppQuery);
   const deferredAccountQuery = useDeferredValue(accountQuery);
+  const deferredHomologationQuery = useDeferredValue(homologationQuery);
   const q = deferredQuery.trim().toLocaleLowerCase("pt-BR");
   const oq = deferredOppQuery.trim().toLocaleLowerCase("pt-BR");
   const aq = deferredAccountQuery.trim().toLocaleLowerCase("pt-BR");
+  const hq = deferredHomologationQuery.trim().toLocaleLowerCase("pt-BR");
 
   const filteredContacts = useMemo(() => {
     const base = q
@@ -99,6 +113,15 @@ export function Cockpit({ initialData }: { initialData: Data }) {
         .includes(oq)
     );
   }, [initialData.opportunities, oq]);
+
+  const filteredHomologations = useMemo(() => {
+    if (!hq) return initialData.homologations;
+    return initialData.homologations.filter((row) =>
+      `${row.company_name ?? ""} ${row.account?.canonical_name ?? ""} ${row.owner_name ?? ""} ${homologationLabels[row.status] ?? row.status} ${row.last_action ?? ""} ${row.next_action ?? ""}`
+        .toLocaleLowerCase("pt-BR")
+        .includes(hq)
+    );
+  }, [initialData.homologations, hq]);
 
   const activityTotals = useMemo(
     () =>
@@ -186,6 +209,20 @@ export function Cockpit({ initialData }: { initialData: Data }) {
     [initialData.opportunities]
   );
 
+  const homologationSummary = useMemo(() => {
+    const open = initialData.homologations.filter((row) => row.status !== "homologada" && row.status !== "bloqueada" && row.status !== "sem_avanco");
+    const due = open.filter((row) => {
+      if (!row.next_action_due_on) return false;
+      const dueOn = new Date(`${row.next_action_due_on}T00:00:00`);
+      return Number.isFinite(dueOn.getTime()) && dueOn <= new Date();
+    });
+    const byStatus = initialData.homologations.reduce<Record<string, number>>((acc, row) => {
+      acc[row.status] = (acc[row.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { total: initialData.homologations.length, open: open.length, due: due.length, byStatus };
+  }, [initialData.homologations]);
+
   const lastDay = useMemo(() => {
     if (!initialData.activities.length) return null;
     const sorted = [...initialData.activities].sort((a, b) => (a.effective_on < b.effective_on ? 1 : -1));
@@ -241,10 +278,13 @@ export function Cockpit({ initialData }: { initialData: Data }) {
 
   const contactPages = Math.max(1, Math.ceil(filteredContacts.length / PAGE_SIZE));
   const oppPages = Math.max(1, Math.ceil(filteredOpportunities.length / PAGE_SIZE));
+  const homologationPages = Math.max(1, Math.ceil(filteredHomologations.length / PAGE_SIZE));
   const safeContactPage = Math.min(contactPage, contactPages - 1);
   const safeOppPage = Math.min(oppPage, oppPages - 1);
+  const safeHomologationPage = Math.min(homologationPage, homologationPages - 1);
   const contactSlice = filteredContacts.slice(safeContactPage * PAGE_SIZE, safeContactPage * PAGE_SIZE + PAGE_SIZE);
   const oppSlice = filteredOpportunities.slice(safeOppPage * PAGE_SIZE, safeOppPage * PAGE_SIZE + PAGE_SIZE);
+  const homologationSlice = filteredHomologations.slice(safeHomologationPage * PAGE_SIZE, safeHomologationPage * PAGE_SIZE + PAGE_SIZE);
 
   const onTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -287,6 +327,7 @@ export function Cockpit({ initialData }: { initialData: Data }) {
         </nav>
         <div className="asideFoot" aria-label="Resumo">
           <span>{initialData.contacts.length} contatos</span>
+          <span>{homologationSummary.open} homologações em andamento</span>
           <span>{pipeline.count} oportunidades abertas</span>
           <span>{safeMoney(pipeline.total)} em pipeline</span>
         </div>
@@ -441,6 +482,70 @@ export function Cockpit({ initialData }: { initialData: Data }) {
                 </button>
                 <span role="status">Página {safeContactPage + 1} de {contactPages} · {filteredContacts.length} resultado(s) para “{deferredQuery || "todos"}”.</span>
                 <button type="button" className="button" disabled={safeContactPage + 1 >= contactPages} onClick={() => setContactPage((p) => p + 1)}>
+                  Próxima
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "Homologação" && (
+            <div role="tabpanel" id={`panel-${activeSlug}`} aria-label="Homologação" tabIndex={0}>
+              <div className="kpis">
+                <Kpi label="Empresas mapeadas" value={String(homologationSummary.total)} />
+                <Kpi label="Processos em andamento" value={String(homologationSummary.open)} />
+                <Kpi label="Ações vencidas ou hoje" value={String(homologationSummary.due)} />
+                <Kpi label="Pré-cadastros" value={String(homologationSummary.byStatus.pre_cadastro ?? 0)} />
+                <Kpi label="Em homologação" value={String(homologationSummary.byStatus.em_homologacao ?? 0)} />
+              </div>
+              <div className="filters">
+                <input
+                  type="search"
+                  aria-label="Buscar homologação"
+                  aria-controls="homologation-table"
+                  placeholder="Buscar empresa, responsável, status ou ação"
+                  value={homologationQuery}
+                  onChange={(e) => {
+                    setHomologationQuery(e.target.value);
+                    setHomologationPage(0);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() =>
+                    downloadCsv(
+                      "homologacao.csv",
+                      [
+                        ["empresa", "conta_relacionada", "responsavel", "status", "ultima_acao", "data_ultima_acao", "proxima_acao", "prazo", "contato_compras", "portal", "evidencia"],
+                        ...filteredHomologations.map((r) => [
+                          str(r.company_name, ""),
+                          str(r.account?.canonical_name, ""),
+                          str(r.owner_name, ""),
+                          homologationLabels[r.status] ?? r.status,
+                          str(r.last_action, ""),
+                          str(r.last_action_at, ""),
+                          str(r.next_action, ""),
+                          str(r.next_action_due_on, ""),
+                          str(r.buyer_area_contact, ""),
+                          str(r.supplier_portal_url, ""),
+                          str(r.evidence_level, ""),
+                        ]),
+                      ]
+                    )
+                  }
+                >
+                  Exportar CSV
+                </button>
+              </div>
+              <Panel title={`Homologações de fornecedores · ${filteredHomologations.length}`}>
+                <HomologationTable rows={homologationSlice} />
+              </Panel>
+              <div className="pager">
+                <button type="button" className="button" disabled={safeHomologationPage === 0} onClick={() => setHomologationPage((p) => Math.max(0, p - 1))}>
+                  Anterior
+                </button>
+                <span role="status">Página {safeHomologationPage + 1} de {homologationPages} · {filteredHomologations.length} resultado(s) para “{deferredHomologationQuery || "todos"}”.</span>
+                <button type="button" className="button" disabled={safeHomologationPage + 1 >= homologationPages} onClick={() => setHomologationPage((p) => p + 1)}>
                   Próxima
                 </button>
               </div>
@@ -739,6 +844,61 @@ function OpportunityTable({ rows }: { rows: OpportunityRow[] }) {
             </tr>
           );
         })}
+      </tbody>
+    </table>
+  );
+}
+
+function HomologationTable({ rows }: { rows: HomologationRow[] }) {
+  if (!rows.length) return <Empty text="Nenhuma homologação registrada." />;
+  return (
+    <table id="homologation-table">
+      <caption className="sr-only">Homologações de fornecedores</caption>
+      <thead>
+        <tr>
+          <th scope="col">Empresa</th>
+          <th scope="col">Responsável</th>
+          <th scope="col">Status</th>
+          <th scope="col">Última ação</th>
+          <th scope="col">Próxima ação</th>
+          <th scope="col">Compras / portal</th>
+          <th scope="col">Evidência</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={String(r.id)}>
+            <td>
+              <b>{str(r.company_name)}</b>
+              <small>{r.account?.canonical_name ? `Conta relacionada: ${r.account.canonical_name}` : str(r.notes, "")}</small>
+            </td>
+            <td>{str(r.owner_name)}</td>
+            <td>
+              <span className={`pill status-${r.status}`}>{homologationLabels[r.status] ?? r.status}</span>
+            </td>
+            <td>
+              {str(r.last_action)}
+              <small>{formatCommercialDate(r.last_action_at)}</small>
+            </td>
+            <td>
+              {str(r.next_action)}
+              <small>{formatCommercialDate(r.next_action_due_on)}</small>
+            </td>
+            <td>
+              {str(r.buyer_area_contact)}
+              <small>
+                {isSafeHttpsUrl(r.supplier_portal_url) ? (
+                  <a href={r.supplier_portal_url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir portal de fornecedores de ${r.company_name} em nova aba`}>
+                    Abrir portal ↗
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </small>
+            </td>
+            <td>{str(r.evidence_level)}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );

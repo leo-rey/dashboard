@@ -7,6 +7,7 @@ Aplicação web de acesso direto para a operação comercial da Antlia. O projet
 - O Supabase é a fonte operacional após a importação reconciliada de 02/10/2026.
 - O schema Supabase está versionado em `supabase/migrations`.
 - A importação preserva IDs legados, fontes, evidências e lotes históricos agregados.
+- A homologação de fornecedores possui módulo próprio e entrada privada autenticada; não use acesso direto ao banco para automações.
 - O arquivo Excel e o snapshot com contatos reais são ignorados pelo Git e não devem ser publicados.
 
 ## Desenvolvimento
@@ -31,3 +32,4 @@ O dashboard não exige login, conforme decisão do proprietário em 02/10/2026.
 - [Migração e reconciliação](docs/migration.md)
 - [Deploy e rollback](docs/runbook.md)
 - [Definições de indicadores](docs/metrics.md)
+- [Homologação e entrada controlada](docs/homologacao.md)
