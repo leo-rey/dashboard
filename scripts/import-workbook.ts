@@ -6,6 +6,9 @@ import * as XLSX from "xlsx";
 const source = resolve(process.cwd(), "../Comercial_Antlia_Operacao/Base_Comercial_Unica_Antlia.xlsx");
 const reportPath = resolve(process.cwd(), "reports/migration-dry-run.json");
 const buffer = await readFile(source);
+// Guard: xlsx@0.18.5 has known ReDoS/prototype-pollution CVEs (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9).
+// Workbook here is internal/official only — never parse user uploads. Migrate to exceljs/@e965/xlsx for untrusted input.
+if (buffer.length > 20 * 1024 * 1024) throw new Error("Workbook too large (>20MB), aborting for safety");
 const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
 const rows = (sheet: string) => XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheet], { header: 1, raw: false, defval: "" }).slice(4).filter((row) => row.some(Boolean));
 const contacts = rows("Contatos");
