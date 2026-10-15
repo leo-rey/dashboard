@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityTrend, formatCommercialDate, formatCommercialDateTime, funnelMetrics, pipelineByStage, pipelineMetrics, priorityOpportunities, sumActivities } from "../lib/metrics";
+import { activityTrend, formatCommercialDate, formatCommercialDateTime, funnelMetrics, isNegativeResponse, normalizeProspectingStatus, pipelineByStage, pipelineMetrics, priorityOpportunities, sumActivities } from "../lib/metrics";
 import { homologationSchema, neutralizeCsv } from "../lib/validation";
 
 describe("commercial metrics", () => {
@@ -18,6 +18,16 @@ describe("commercial metrics", () => {
   it("shows a placeholder for missing or invalid dates", () => {
     expect(formatCommercialDate("Data a validar")).toBe("—");
     expect(formatCommercialDateTime(undefined)).toBe("—");
+  });
+  it("consolidates equivalent pending invitation statuses", () => {
+    expect(normalizeProspectingStatus("Convite enviado")).toBe("Convite enviado; aguardando aceite");
+    expect(normalizeProspectingStatus("Convite pendente; aguardando aceite")).toBe("Convite enviado; aguardando aceite");
+  });
+  it("counts only explicit negative responses", () => {
+    expect(isNegativeResponse("Respondeu; sem oportunidade no momento")).toBe(true);
+    expect(isNegativeResponse("Convite rejeitado")).toBe(true);
+    expect(isNegativeResponse("Recusa presumida; não reenviar")).toBe(false);
+    expect(isNegativeResponse("Mensagem não visualizada; sem resposta")).toBe(false);
   });
   it("ignores closed stages and NaN amounts", () => {
     const r = pipelineMetrics([
