@@ -1,6 +1,39 @@
 export type Activity = { contacts: number; invites: number; messages: number; replies: number; conversations: number; meetings: number; opportunities: number };
 export type Opportunity = { value_amount: number | string; probability: number; stage?: { is_closed?: boolean } | null };
 
+const INVITE_PENDING_STATUSES = new Set([
+  "convite enviado",
+  "convite pendente; aguardando aceite",
+  "convite enviado; aguardando aceite",
+]);
+
+const NEGATIVE_RESPONSE_MARKERS = [
+  "sem oportunidade",
+  "sem demanda",
+  "sem espaço para consultorias",
+  "sem aderência",
+  "sem interesse",
+  "convite rejeitado",
+  "execução interna, sem parceiros",
+  "não está mais no",
+];
+
+function normalizeLabel(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") || "A validar";
+}
+
+export function normalizeProspectingStatus(value: string | null | undefined) {
+  const status = normalizeLabel(value);
+  return INVITE_PENDING_STATUSES.has(status.toLocaleLowerCase("pt-BR"))
+    ? "Convite enviado; aguardando aceite"
+    : status;
+}
+
+export function isNegativeResponse(value: string | null | undefined) {
+  const status = normalizeLabel(value).toLocaleLowerCase("pt-BR");
+  return NEGATIVE_RESPONSE_MARKERS.some((marker) => status.includes(marker));
+}
+
 const commercialDateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" });
 const commercialDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
