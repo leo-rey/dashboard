@@ -24,7 +24,8 @@ header p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .content{padding:24px 30px 46px;max-width:1600px;margin:auto}
 .alert{background:#fff0f1;border:1px solid #f3c4cb;color:#8d2435;padding:12px;border-radius:10px;margin-bottom:16px}
 .filters{display:flex;margin-bottom:17px}
-.filters input{border:1px solid var(--line);background:#fff;border-radius:var(--radius-sm);padding:10px 12px;min-width:270px;font-size:14px}
+.filters input,.filters select{border:1px solid var(--line);background:#fff;border-radius:var(--radius-sm);padding:10px 12px;min-width:220px;font-size:14px;color:var(--ink)}
+.filters input{min-width:270px}
 .hint{color:var(--muted);font-size:12px;margin:8px 2px 0}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:16px}
 .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:0 1px 2px rgba(11,31,58,.03)}
@@ -83,7 +84,7 @@ header{position:static;padding:15px 18px;height:auto}
 .updated{display:none}
 .content{padding:16px}
 .accountGrid{grid-template-columns:1fr}
-.filters input{width:100%;min-width:0}
+.filters input,.filters select{width:100%;min-width:0}
 .hero{padding:20px}
 .hero h2{font-size:24px}
 .kpi strong{font-size:24px}
